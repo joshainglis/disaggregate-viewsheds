@@ -1,4 +1,4 @@
-FROM gliderlabs/alpine:3.4
+FROM python:3.5-alpine
 
 VOLUME /in
 VOLUME /out
@@ -10,22 +10,21 @@ RUN apk --update add \
     gdal \
     geos \
     openssl \
-    py-pip \
-    py-numpy \
-    python \
+    tini \
     --update-cache \
     --repository http://dl-3.alpinelinux.org/alpine/edge/community/ --allow-untrusted \
     --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ --allow-untrusted
 
 RUN apk --update add --virtual build-dependencies \
-        python-dev \
         build-base \
         gdal-dev \
         geos-dev \
-        py-numpy-dev \
         --update-cache \
         --repository http://dl-3.alpinelinux.org/alpine/edge/community/ --allow-untrusted \
         --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ --allow-untrusted \
+    && ln -s /usr/include/locale.h /usr/include/xlocale.h \
+    && pip install \
+        numpy \
     && pip install \
         fiona \
         rasterio \
@@ -37,4 +36,6 @@ COPY ./disaggregate_viewsheds.py /code
 ENV VIEWSHEDS_PER_FILE=32
 ENV OVERFLOW=31
 
-ENTRYPOINT ["/usr/bin/python", "/code/disaggregate_viewsheds.py"]
+WORKDIR /code
+ENTRYPOINT ["sbin/tini", "--"]
+CMD ["/usr/bin/python", "disaggregate_viewsheds.py"]
